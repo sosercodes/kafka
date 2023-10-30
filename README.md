@@ -67,7 +67,7 @@ spring.kafka.bootstrap-servers=localhost:9092
 spring.kafka.consumer.group-id=myGroup
 ```
 
-## Create a Consumer in Sring Boot
+## Create a Consumer in Spring Boot
 
 Now we create a small [consumer app](https://docs.spring.io/spring-kafka/docs/current/reference/html/#spring-boot-consumer-app).
 In order to create a topic on startup, we add a bean of type NewTopic.
@@ -101,6 +101,52 @@ public class KafkaApplication {
 	@KafkaListener(id = "myId", topics = "topic1")
 	public void listen(String in) {
 		System.out.println(in);
+	}
+}
+```
+
+## Create a Producer in Spring Boot
+
+Spring’s `KafkaTemplate` is auto-configured, and you can autowire it directly in your own beans.
+We can use the `template` to send a message to our `topic1`.
+
+```java
+package io.eyce.sample.kafka;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.KafkaTemplate;
+
+@SpringBootApplication
+public class KafkaApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(KafkaApplication.class, args);
+	}
+
+	@Bean
+	public NewTopic topic() {
+		return TopicBuilder.name("topic1")
+				.partitions(10)
+				.replicas(1)
+				.build();
+	}
+
+	@KafkaListener(id = "myId", topics = "topic1")
+	public void listen(String in) {
+		System.out.println(in);
+	}
+
+	@Bean
+	public ApplicationRunner runner(KafkaTemplate<String, String> template) {
+		return args -> {
+			template.send("topic1", "Hello World from Spring Boot!");
+		};
 	}
 }
 ```
