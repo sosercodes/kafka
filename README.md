@@ -107,7 +107,7 @@ public class KafkaApplication {
 
 ## Create a Producer in Spring Boot
 
-Spring’s `KafkaTemplate` is auto-configured, and you can autowire it directly in your own beans.
+Spring’s `KafkaTemplate` is auto-configured, and you can auto-wire it directly in your own beans.
 We can use the `template` to send a message to our `topic1`.
 
 ```java
@@ -125,31 +125,53 @@ import org.springframework.kafka.core.KafkaTemplate;
 @SpringBootApplication
 public class KafkaApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(KafkaApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(KafkaApplication.class, args);
+    }
 
-	@Bean
-	public NewTopic topic() {
-		return TopicBuilder.name("topic1")
-				.partitions(10)
-				.replicas(1)
-				.build();
-	}
+    @Bean
+    public NewTopic topic() {
+        return TopicBuilder.name("topic1")
+                .partitions(10)
+                .replicas(1)
+                .build();
+    }
 
-	@KafkaListener(id = "myId", topics = "topic1")
-	public void listen(String in) {
-		System.out.println(in);
-	}
+    @KafkaListener(id = "myId", topics = "topic1")
+    public void listen(String in) {
+        System.out.println(in);
+    }
 
-	@Bean
-	public ApplicationRunner runner(KafkaTemplate<String, String> template) {
-		return args -> {
-			template.send("topic1", "Hello World from Spring Boot!");
-		};
-	}
+    @Bean
+    public ApplicationRunner runner(KafkaTemplate<String, String> template) {
+        return args -> template.send("topic1", "Hello World from Spring Boot!");
+    }
 }
 ```
 
+## Move the Config into its own Configuration Class
+
+We can move the Configuration into its own class.
+
+```java
+package io.eyce.sample.kafka.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.TopicBuilder;
+
+@Configuration
+public class KafkaConfig {
+
+    @Bean
+    public NewTopic topic() {
+        return TopicBuilder.name("topic1")
+                .partitions(10)
+                .replicas(1)
+                .build();
+    }
+}
+```
 
 
