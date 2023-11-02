@@ -336,6 +336,12 @@ public ApplicationRunner runner(KafkaTemplate<String, Book> template) {
 }
 ```
 
+## Multi Method Listeners
+
+Todo: [Multi Method Listeners](https://www.baeldung.com/spring-kafka#multi-method-listeners)
+
+...
+
 ## Terminate the Kafka Environment
 
 Now that you reached the end of the quickstart, feel free to tear down the Kafka environment—or continue playing around.
@@ -360,4 +366,27 @@ We can print the header in the console using the following command.
 bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --from-beginning --topic books --property print.headers=true --property print.timestamp=true
 ```
 
+## Printing Headers in Java
 
+You can find that in Multiple Consumers [Spring Boot and Kafka – Practical Example - BY MOISÉS MACERO ON OCTOBER 8, 2021](https://thepracticaldeveloper.com/spring-boot-kafka-config/#about-kafka-serializers-and-deserializers-for-java).
+
+```java
+@KafkaListener(topics = "advice-topic", clientIdPrefix = "json",
+        containerFactory = "kafkaListenerContainerFactory")
+public void listenAsObject(ConsumerRecord<String, PracticalAdvice> cr,
+                           @Payload PracticalAdvice payload) {
+    logger.info("Logger 1 [JSON] received key {}: Type [{}] | Payload: {} | Record: {}", cr.key(),
+            typeIdHeader(cr.headers()), payload, cr.toString());
+    latch.countDown();
+}
+```
+
+## Even more Stuff
+
+Interesting Links.
+
+- Multiple Consumers [Spring Boot and Kafka – Practical Example - BY MOISÉS MACERO ON OCTOBER 8, 2021](https://thepracticaldeveloper.com/spring-boot-kafka-config/#about-kafka-serializers-and-deserializers-for-java)
+- Kafka and the Confluent Platform at ING [Spring for Apache Kafka – Beyond the Basics: Can Your Kafka Consumers Handle a Poison Pill?](https://www.confluent.io/blog/spring-kafka-can-your-kafka-consumers-handle-a-poison-pill/)
+- Sending Messages [Spring Reference Documentation](https://docs.spring.io/spring-kafka/reference/kafka/sending-messages.html)
+- [Spring Boot Kafka JsonSerializer Example](https://howtodoinjava.com/kafka/spring-boot-jsonserializer-example/)
+- [HowToDoInJava - Lokesh Gupta - Apache Kafka Tutorial](https://howtodoinjava.com/kafka/apache-kafka-tutorial/)
