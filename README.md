@@ -2,6 +2,9 @@
 
 Sample Application for Kafka and Spring Boot.
 
+- [Baeldung: Intro to Apache Kafka with Spring](https://www.baeldung.com/spring-kafka)
+
+
 ## Install Kafka (locally)
 
 First things first. For a Quickstart tutorial on how to do a Kafka installation 
@@ -176,7 +179,7 @@ public class KafkaConfig {
 
 ## Add Kafka Configuration for Producer and Consumer
 
-Now we can add Producer and Consumer Configuration using our properties `producerProps` and `consumerProps`.
+Now we can add a Producer and Consumer Configuration using our properties `producerProps` and `consumerProps`.
 
 ```java
 package io.eyce.sample.kafka.config;
@@ -255,6 +258,84 @@ public class KafkaConfig {
 
 ```
 
+## Using a Json Message Converter
+
+In order to send and receive custom types serialized to Json Objects we have to change our configuration.
+Assume we want to send a `Book` to the consumer. 
+
+```java
+package io.eyce.sample.kafka.domain;
+
+import lombok.*;
+
+@Data
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
+public class Book {
+    private String title;
+    private String author;
+}
+```
+
+Then we have to change the `VALUE_SERIALIZER_CLASS_CONFIG` to `JsonSerializer.class` Let’s look at the code for `ProducerFactory` and `KafkaTemplate`.
+
+```java
+@Bean
+public Map<String, Object> producerProps() {
+    Map<String, Object> props = new HashMap<>();
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+    return props;
+}
+
+@Bean
+public ProducerFactory<String, Book> producerFactory() {
+    return new DefaultKafkaProducerFactory<>(producerProps());
+}
+
+@Bean
+public KafkaTemplate<String, Book> kafkaTemplate() {
+    return new KafkaTemplate<>(producerFactory());
+}
+```
+
+Additionally we need to change the consumer configuration, too.
+
+```Java
+@Bean
+public ConsumerFactory<String, Book> consumerFactory() {
+    return new DefaultKafkaConsumerFactory<>(consumerProps());
+}
+
+private Map<String, Object> consumerProps() {
+    Map<String, Object> props = new HashMap<>();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+    // props.put(ConsumerConfig.GROUP_ID_CONFIG, "group");
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+    props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    return props;
+}
+```
+
+Now we can send and receive `Book`s.
+```java
+@KafkaListener(id = "myId", topics = "books")
+public void listen(Book b) {
+    System.out.println(b);
+}
+
+@Bean
+public ApplicationRunner runner(KafkaTemplate<String, Book> template) {
+    return args -> {
+        template.send("books", new Book("Kafka in Action", "Dylan Scott, Viktor Gamov, Dave Klein"));
+    };
+}
+```
+
 ## Terminate the Kafka Environment
 
 Now that you reached the end of the quickstart, feel free to tear down the Kafka environment—or continue playing around.
@@ -268,6 +349,15 @@ you have created along the way, run the following command.
 
 ```bash
 rm -rf /tmp/kafka-logs /tmp/zookeeper /tmp/kraft-combined-logs
+```
+
+## Printing Headers in the console
+
+In order to deserialize the received message Java sets a header containing the java class.
+We can print the header in the console using the following command.
+
+```bash
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --from-beginning --topic books --property print.headers=true --property print.timestamp=true
 ```
 
 

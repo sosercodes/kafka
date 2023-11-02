@@ -1,5 +1,6 @@
 package io.eyce.sample.kafka.config;
 
+import io.eyce.sample.kafka.domain.Book;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -11,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,15 +26,10 @@ public class KafkaConfig {
 
     @Bean
     public NewTopic topic() {
-        return TopicBuilder.name("topic1")
+        return TopicBuilder.name("books")
                 .partitions(10)
                 .replicas(1)
                 .build();
-    }
-
-    @Bean
-    public ProducerFactory<String, String> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerProps());
     }
 
     @Bean
@@ -39,25 +37,30 @@ public class KafkaConfig {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         // See https://kafka.apache.org/documentation/#producerconfigs for more properties
         return props;
     }
 
     @Bean
-    public KafkaTemplate<String, String> kafkaTemplate() {
-        return new KafkaTemplate<String, String>(producerFactory());
+    public ProducerFactory<String, Book> producerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerProps());
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<Integer, String> kafkaListenerContainerFactory(ConsumerFactory<Integer, String> consumerFactory) {
-        ConcurrentKafkaListenerContainerFactory<Integer, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory);
+    public KafkaTemplate<String, Book> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+
+    @Bean
+    ConcurrentKafkaListenerContainerFactory<String, Book> kafkaListenerContainerFactory(ConsumerFactory<String, Book> consumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, Book> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
         return factory;
     }
 
     @Bean
-    public ConsumerFactory<Integer, String> consumerFactory() {
+    public ConsumerFactory<String, Book> consumerFactory() {
         return new DefaultKafkaConsumerFactory<>(consumerProps());
     }
 
@@ -66,7 +69,8 @@ public class KafkaConfig {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         // props.put(ConsumerConfig.GROUP_ID_CONFIG, "group");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         return props;
     }
